@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../config/firebase');
 const { normalizeRoll, isValidRollFormat } = require('../utils/roll');
+const { invalidateResultsCache } = require('../utils/resultsCache');
 
 const router = express.Router();
 
@@ -111,6 +112,7 @@ router.post('/admin/candidates/:rollNo/approve', requireAdmin, async (req, res, 
       return res.status(400).json({ ok: false, error: 'Only pending or rejected candidates can be approved.' });
     }
     await ref.update({ status: 'approved' });
+    invalidateResultsCache();
     return res.json({ ok: true, message: 'Candidate approved.' });
   } catch (err) {
     return next(err);
@@ -133,6 +135,7 @@ router.post('/admin/candidates/:rollNo/reject', requireAdmin, async (req, res, n
       return res.status(400).json({ ok: false, error: 'Only pending candidates can be rejected.' });
     }
     await ref.update({ status: 'rejected' });
+    invalidateResultsCache();
     return res.json({ ok: true, message: 'Candidate rejected.' });
   } catch (err) {
     return next(err);
@@ -177,7 +180,36 @@ router.delete('/admin/candidates/:rollNo', requireAdmin, async (req, res, next) 
     deleteBatch.delete(db.collection('candidatePhotos').doc(rollNo));
     await deleteBatch.commit();
 
+    invalidateResultsCache();
     return res.json({ ok: true, message: 'Candidate deleted.', votesRemoved });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/admin/settings', requireAdmin, async (req, res, next) => {
+  try {
+    const doc = await db.collection('settings').doc('results').get();
+    let resultsVisible = true;
+    if (doc.exists) {
+      const d = doc.data() || {};
+      if (typeof d.visible === 'boolean') resultsVisible = d.visible;
+    }
+    return res.json({ ok: true, resultsVisible });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/admin/settings/results', requireAdmin, async (req, res, next) => {
+  try {
+    const { visible } = req.body || {};
+    if (typeof visible !== 'boolean') {
+      return res.status(400).json({ ok: false, error: 'visible must be a boolean.' });
+    }
+    await db.collection('settings').doc('results').set({ visible }, { merge: true });
+    invalidateResultsCache();
+    return res.json({ ok: true, resultsVisible: visible });
   } catch (err) {
     return next(err);
   }

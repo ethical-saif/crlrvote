@@ -2,6 +2,7 @@ const express = require('express');
 const { FieldValue } = require('firebase-admin/firestore');
 const { db } = require('../config/firebase');
 const { authRequired } = require('../middleware/auth');
+const { invalidateResultsCache } = require('../utils/resultsCache');
 
 const router = express.Router();
 
@@ -103,6 +104,7 @@ router.post('/vote', authRequired, async (req, res, next) => {
       }
     });
 
+    invalidateResultsCache();
     return res.json({ ok: true });
   } catch (err) {
     if (err && err.code === 'ALREADY_VOTED') {

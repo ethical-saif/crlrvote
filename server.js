@@ -51,6 +51,7 @@ app.use('/api', require('./routes/auth'));
 app.use('/api', require('./routes/candidates'));
 app.use('/api', require('./routes/vote'));
 app.use('/api', require('./routes/admin'));
+app.use('/api', require('./routes/results'));
 
 app.use('/api', (req, res) => {
   res.status(404).json({ ok: false, error: 'Not found.' });

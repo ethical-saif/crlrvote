@@ -5,6 +5,7 @@ import Layout from './components/Layout.jsx';
 import Home from './pages/Home.jsx';
 import Candidates from './pages/Candidates.jsx';
 import Admin from './pages/Admin.jsx';
+import Results from './pages/Results.jsx';
 
 function Page({ children }) {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Page><Home /></Page>} />
           <Route path="/candidates" element={<Page><Candidates /></Page>} />
+          <Route path="/results" element={<Page><Results /></Page>} />
           <Route path="/admin" element={<Page><Admin /></Page>} />
         </Routes>
       </AnimatePresence>

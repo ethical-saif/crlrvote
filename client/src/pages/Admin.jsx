@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Shield, RefreshCw, BarChart3, Users, Vote, Percent, Check, X, Trash2, Clock, AlertTriangle } from 'lucide-react';
+import { Shield, RefreshCw, BarChart3, Users, Vote, Percent, Check, X, Trash2, Clock, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../lib/api.js';
 import { useToast } from '../components/Toast.jsx';
@@ -142,6 +142,8 @@ export default function Admin() {
   const [busy, setBusy] = useState({});
   const [modal, setModal] = useState(null); // { type: 'reject'|'delete', candidate }
   const [photoUrls, setPhotoUrls] = useState({});
+  const [resultsVisible, setResultsVisible] = useState(true);
+  const [settingsLoading, setSettingsLoading] = useState(false);
   const photoUrlsRef = useRef({});
 
   async function loadAll(k = authedKey || key) {
@@ -149,9 +151,10 @@ export default function Admin() {
     if (!adminKey) { toast('Enter admin key.', 'error'); return; }
     setLoading(true);
     try {
-      const [resR, resM] = await Promise.all([
+      const [resR, resM, resS] = await Promise.all([
         api('/api/admin/results', { headers: { 'x-admin-key': adminKey } }),
         api('/api/admin/candidates', { headers: { 'x-admin-key': adminKey } }),
+        api('/api/admin/settings', { headers: { 'x-admin-key': adminKey } }),
       ]);
       if (!resR.res.ok || !resR.data.ok) {
         toast(resR.data.error || 'Failed to load results.', 'error');
@@ -163,13 +166,42 @@ export default function Admin() {
         if (resM.res.status === 401) { setResults(null); setManageList([]); setAuthedKey(''); }
         return;
       }
+      if (!resS.res.ok || !resS.data.ok) {
+        toast(resS.data.error || 'Failed to load settings.', 'error');
+        if (resS.res.status === 401) { setResults(null); setManageList([]); setAuthedKey(''); }
+        return;
+      }
       setResults(resR.data);
       setManageList(resM.data.candidates || []);
+      setResultsVisible(!!resS.data.resultsVisible);
       setAuthedKey(adminKey);
     } catch (e) {
       toast('Network error.', 'error');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function toggleResultsVisibility() {
+    if (!authedKey) return;
+    setSettingsLoading(true);
+    const next = !resultsVisible;
+    try {
+      const { res, data } = await api('/api/admin/settings/results', {
+        method: 'POST',
+        headers: { 'x-admin-key': authedKey },
+        body: { visible: next },
+      });
+      if (!res.ok || !data.ok) {
+        toast(data.error || 'Failed to update visibility.', 'error');
+        return;
+      }
+      setResultsVisible(!!data.resultsVisible);
+      toast(data.resultsVisible ? 'Results are now visible to students.' : 'Results are now hidden from students.', 'success');
+    } catch (e) {
+      toast('Network error.', 'error');
+    } finally {
+      setSettingsLoading(false);
     }
   }
 
@@ -336,6 +368,37 @@ export default function Admin() {
 
       {results && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          <Card className="p-5 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${resultsVisible ? 'bg-emerald-600/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-500/10 text-slate-600 dark:text-slate-300'}`}>
+                  {resultsVisible ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">Show results to students</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Turn OFF to hide live results while voting is running.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={toggleResultsVisibility}
+                disabled={settingsLoading}
+                role="switch"
+                aria-checked={resultsVisible}
+                aria-label="Show results to students"
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 ${
+                  resultsVisible ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                }`}
+              >
+                <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition ${resultsVisible ? 'translate-x-7' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            <p className="mt-3 text-sm">
+              Status: <span className={`font-semibold ${resultsVisible ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'}`}>{resultsVisible ? 'Visible to students' : 'Hidden from students'}</span>
+              {settingsLoading && <span className="ml-2 text-slate-500">Updating…</span>}
+            </p>
+          </Card>
+
           <div className="grid sm:grid-cols-3 gap-4">
             <Stat icon={Vote} label="Total votes" value={results.totalVotes} accent="bg-indigo-600/10 text-indigo-600 dark:text-indigo-400" />
             <Stat icon={Users} label="Total students" value={results.totalStudents} accent="bg-fuchsia-600/10 text-fuchsia-600 dark:text-fuchsia-400" />

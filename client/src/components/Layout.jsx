@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Moon, Sun, Vote, UserPlus, Shield } from 'lucide-react';
+import { Moon, Sun, Vote, UserPlus, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../lib/theme.jsx';
 
@@ -52,8 +52,8 @@ export default function Layout({ children }) {
             <NavLink to="/candidates" className={navLink}>
               <UserPlus className="w-4 h-4" /> Candidates
             </NavLink>
-            <NavLink to="/admin" className={navLink}>
-              <Shield className="w-4 h-4" /> Admin
+            <NavLink to="/results" className={navLink}>
+              <BarChart3 className="w-4 h-4" /> Results
             </NavLink>
             <ThemeToggle />
           </nav>
