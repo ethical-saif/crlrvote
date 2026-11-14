@@ -15,6 +15,9 @@ app.use(helmet({
     directives: {
       "script-src": ["'self'"],
       "style-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:", "blob:"],
+      "font-src": ["'self'", "data:"],
+      "connect-src": ["'self'"],
     },
   },
 }));
@@ -49,17 +52,21 @@ app.use('/api', require('./routes/candidates'));
 app.use('/api', require('./routes/vote'));
 app.use('/api', require('./routes/admin'));
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/candidates', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'candidates.html'));
-});
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
 app.use('/api', (req, res) => {
   res.status(404).json({ ok: false, error: 'Not found.' });
+});
+
+const distPath = path.join(__dirname, 'client', 'dist');
+const blockedFiles = new Set(['/privatekey.json', '/.env', '/README.md', '/server.js', '/package.json', '/package-lock.json', '/.gitignore', '/DEPLOY.md']);
+app.use((req, res, next) => {
+  if (blockedFiles.has(req.path)) return res.status(404).send('Not found');
+  return next();
+});
+app.use(express.static(distPath));
+
+app.get(/^(?!\/api).*/, (req, res) => {
+  if (blockedFiles.has(req.path)) return res.status(404).send('Not found');
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.use((err, req, res, next) => {
