@@ -16,6 +16,11 @@ router.post('/vote', authRequired, async (req, res, next) => {
       const voteRef = db.collection('votes').doc(rollNo);
       const studentRef = db.collection('students').doc(rollNo);
 
+      const effectiveStatus = (d) => {
+        const s = d && d.status;
+        return (s === 'pending' || s === 'approved' || s === 'rejected') ? s : 'approved';
+      };
+
       const [voteSnap, studentSnap, crSnapAll, lrSnapAll] = await Promise.all([
         tx.get(voteRef),
         tx.get(studentRef),
@@ -35,9 +40,9 @@ router.post('/vote', authRequired, async (req, res, next) => {
       }
 
       const crCandidates = [];
-      crSnapAll.forEach((d) => crCandidates.push(d.id));
+      crSnapAll.forEach((d) => { if (effectiveStatus(d.data() || {}) === 'approved') crCandidates.push(d.id); });
       const lrCandidates = [];
-      lrSnapAll.forEach((d) => lrCandidates.push(d.id));
+      lrSnapAll.forEach((d) => { if (effectiveStatus(d.data() || {}) === 'approved') lrCandidates.push(d.id); });
 
       if (crCandidates.length > 0 && !crCandidateId) {
         const err = new Error('CR_REQUIRED');
@@ -66,7 +71,8 @@ router.post('/vote', authRequired, async (req, res, next) => {
 
       if (crRef) {
         const crDoc = await tx.get(crRef);
-        if (!crDoc.exists || (crDoc.data() || {}).position !== 'CR') {
+        const cd = crDoc.exists ? (crDoc.data() || {}) : null;
+        if (!crDoc.exists || cd.position !== 'CR' || effectiveStatus(cd) !== 'approved') {
           const err = new Error('INVALID_CR');
           err.code = 'INVALID_CR';
           throw err;
@@ -74,7 +80,8 @@ router.post('/vote', authRequired, async (req, res, next) => {
       }
       if (lrRef) {
         const lrDoc = await tx.get(lrRef);
-        if (!lrDoc.exists || (lrDoc.data() || {}).position !== 'LR') {
+        const ld = lrDoc.exists ? (lrDoc.data() || {}) : null;
+        if (!lrDoc.exists || ld.position !== 'LR' || effectiveStatus(ld) !== 'approved') {
           const err = new Error('INVALID_LR');
           err.code = 'INVALID_LR';
           throw err;

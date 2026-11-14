@@ -85,7 +85,7 @@ export default function Candidates() {
         hasPhoto: !!data.hasPhoto,
         photoPreview: photoPreview || null,
       });
-      toast(data.message || 'Registered successfully.', 'success');
+      toast(data.message || 'Submitted! Your registration will appear on the voting page after admin approval.', 'success');
       setForm({ rollNo: '', name: '', position: '', manifesto: '' });
       clearPhoto();
       setErrors({});
@@ -118,12 +118,12 @@ export default function Candidates() {
             />
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-2 font-semibold text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="w-5 h-5" /> Registration successful
+                <CheckCircle2 className="w-5 h-5" /> Registration submitted
               </p>
               <p className="text-slate-700 dark:text-slate-200 truncate">
                 {success.name || 'Candidate'} ({success.rollNo}) — {success.position}
               </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{success.hasPhoto ? 'Photo uploaded.' : 'No photo (initials avatar will be shown).'}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Submitted! Your registration will appear on the voting page after admin approval.</p>
             </div>
             <Button variant="secondary" type="button" onClick={() => setSuccess(null)} className="shrink-0">New</Button>
           </div>

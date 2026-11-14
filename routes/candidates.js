@@ -13,6 +13,17 @@ const ALLOWED_PHOTO = {
   'image/webp': { prefix: 'data:image/webp;base64,', sig: (b) => b.length >= 12 && b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP' },
 };
 
+function effectiveStatus(d) {
+  const s = d && d.status;
+  if (s === 'pending' || s === 'approved' || s === 'rejected') return s;
+  return 'approved';
+}
+
+function isAdminReq(req) {
+  const key = req.header('x-admin-key');
+  return !!process.env.ADMIN_KEY && key === process.env.ADMIN_KEY;
+}
+
 function parsePhoto(photo) {
   if (photo == null || photo === '') return null;
   if (typeof photo !== 'string') {
@@ -46,7 +57,6 @@ function parsePhoto(photo) {
   if (!match.cfg.sig(buf)) {
     return { error: 'Invalid or unsupported image file.' };
   }
-  // reject SVG markers just in case
   const head = buf.slice(0, 256).toString('utf8').toLowerCase();
   if (head.includes('<svg') || head.includes('<?xml')) {
     return { error: 'SVG images are not allowed.' };
@@ -60,6 +70,7 @@ router.get('/candidates', authRequired, async (req, res, next) => {
     const grouped = { CR: [], LR: [] };
     snap.forEach((doc) => {
       const d = doc.data() || {};
+      if (effectiveStatus(d) !== 'approved') return;
       const item = {
         id: doc.id,
         rollNo: d.rollNo || doc.id,
@@ -109,6 +120,13 @@ router.post('/candidates/register', async (req, res, next) => {
 
     const existing = await db.collection('candidates').doc(rollNo).get();
     if (existing.exists) {
+      const st = effectiveStatus(existing.data() || {});
+      if (st === 'pending') {
+        return res.status(409).json({ ok: false, error: 'Your registration is waiting for admin approval.' });
+      }
+      if (st === 'rejected') {
+        return res.status(409).json({ ok: false, error: 'Your registration was rejected. Please contact the admin.' });
+      }
       return res.status(409).json({ ok: false, error: 'You are already registered as a candidate.' });
     }
 
@@ -124,6 +142,7 @@ router.post('/candidates/register', async (req, res, next) => {
       manifesto,
       voteCount: 0,
       hasPhoto: !!parsedPhoto,
+      status: 'pending',
       createdAt: FieldValue.serverTimestamp(),
     });
     if (parsedPhoto) {
@@ -137,7 +156,7 @@ router.post('/candidates/register', async (req, res, next) => {
     }
     await batch.commit();
 
-    return res.status(201).json({ ok: true, message: 'Registered successfully.', hasPhoto: !!parsedPhoto });
+    return res.status(201).json({ ok: true, message: 'Submitted! Your registration will appear on the voting page after admin approval.', hasPhoto: !!parsedPhoto });
   } catch (err) {
     return next(err);
   }
@@ -149,6 +168,15 @@ router.get('/candidates/:rollNo/photo', async (req, res, next) => {
     if (!isValidRollFormat(rollNo)) {
       return res.status(404).send('Not found');
     }
+    const candDoc = await db.collection('candidates').doc(rollNo).get();
+    if (!candDoc.exists) {
+      return res.status(404).send('Not found');
+    }
+    const cand = candDoc.data() || {};
+    if (effectiveStatus(cand) !== 'approved' && !isAdminReq(req)) {
+      return res.status(404).send('Not found');
+    }
+
     const doc = await db.collection('candidatePhotos').doc(rollNo).get();
     if (!doc.exists) {
       return res.status(404).send('Not found');
