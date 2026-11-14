@@ -26,6 +26,7 @@ router.get('/admin/results', async (req, res, next) => {
         position: d.position,
         manifesto: d.manifesto || '',
         voteCount: typeof d.voteCount === 'number' ? d.voteCount : 0,
+        hasPhoto: !!d.hasPhoto,
       });
     });
 

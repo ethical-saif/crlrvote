@@ -1,17 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { LogIn, LogOut, CheckCircle2, Vote, Sparkles, AlertTriangle, User } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useToast } from '../components/Toast.jsx';
 import { Card, Button, Input, Skeleton, Modal } from '../components/ui.jsx';
-
-function initials(name) {
-  if (!name) return '?';
-  const parts = String(name).trim().split(/\s+/).filter(Boolean);
-  const letters = parts.slice(0, 2).map((p) => p[0].toUpperCase());
-  return letters.join('') || '?';
-}
+import Avatar from '../components/Avatar.jsx';
 
 function CandidateCard({ c, selected, onSelect, nameAttr }) {
   return (
@@ -32,11 +26,7 @@ function CandidateCard({ c, selected, onSelect, nameAttr }) {
             : 'border-slate-200/70 dark:border-slate-700/70 bg-white/60 dark:bg-slate-900/40 hover:border-indigo-300 dark:hover:border-indigo-600'
         }`}
       >
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
-          selected ? 'bg-gradient-to-br from-indigo-600 to-fuchsia-600 text-white' : 'bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-100'
-        }`}>
-          {initials(c.name)}
-        </div>
+        <Avatar rollNo={c.rollNo} name={c.name} hasPhoto={c.hasPhoto} size={48} selected={selected} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{c.name || '(No name)'}</p>

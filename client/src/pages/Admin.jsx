@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { api } from '../lib/api.js';
 import { useToast } from '../components/Toast.jsx';
 import { Card, Button, Input, Skeleton } from '../components/ui.jsx';
+import Avatar from '../components/Avatar.jsx';
 
 function Stat({ icon: Icon, label, value, accent }) {
   return (
@@ -37,13 +38,16 @@ function Leaderboard({ title, items }) {
             return (
               <div key={c.id} className="space-y-1.5">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">
-                      <span className="text-slate-400 mr-2">#{idx + 1}</span>
-                      {c.name || '(No name)'}
-                      <span className="text-slate-500 dark:text-slate-400 font-normal"> · {c.rollNo}</span>
-                    </p>
-                    {c.manifesto && <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{c.manifesto}</p>}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar rollNo={c.rollNo} name={c.name} hasPhoto={c.hasPhoto} size={40} />
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">
+                        <span className="text-slate-400 mr-2">#{idx + 1}</span>
+                        {c.name || '(No name)'}
+                        <span className="text-slate-500 dark:text-slate-400 font-normal"> · {c.rollNo}</span>
+                      </p>
+                      {c.manifesto && <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{c.manifesto}</p>}
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 font-semibold text-sm">
